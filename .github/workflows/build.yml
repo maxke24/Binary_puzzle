@@ -28,24 +28,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Install Gradle so we can bootstrap the wrapper jar
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.6'
-
-      - name: Generate Gradle wrapper
-        run: gradle wrapper --gradle-version 8.6 --distribution-type bin
-
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
-      # Write google-services.json from the repository secret
-      - name: Create google-services.json
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
-
       # Cache downloaded dependencies
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -55,6 +37,31 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
+
+      # Point the Android Gradle Plugin at the pre-installed SDK
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      # Fail fast with a clear message if the secret is not configured
+      - name: Validate GOOGLE_SERVICES_JSON secret
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "❌ GOOGLE_SERVICES_JSON secret is not set."
+            echo "   Go to: Settings → Secrets and variables → Actions → New repository secret"
+            echo "   Name:  GOOGLE_SERVICES_JSON"
+            echo "   Value: paste the full contents of your google-services.json"
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          echo "✅ google-services.json written"
+
+      # Bootstrap the Gradle wrapper jar (not committed to the repo)
+      - name: Bootstrap Gradle wrapper
+        run: |
+          gradle wrapper --gradle-version 8.6 --distribution-type bin
+          chmod +x gradlew
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
@@ -69,6 +76,4 @@ jobs:
 
       - name: Show APK info
         if: success()
-        run: |
-          echo "✅ APK built successfully"
-          ls -lh app/build/outputs/apk/debug/app-debug.apk
+        run: ls -lh app/build/outputs/apk/debug/app-debug.apk
