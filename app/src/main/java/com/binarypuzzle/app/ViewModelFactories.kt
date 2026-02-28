@@ -2,17 +2,9 @@ package com.binarypuzzle.app
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.binarypuzzle.app.auth.GoogleAuthManager
 import com.binarypuzzle.app.data.repository.ProgressRepository
-import com.binarypuzzle.app.viewmodel.AuthViewModel
 import com.binarypuzzle.app.viewmodel.GameViewModel
 import com.binarypuzzle.app.viewmodel.ProgressViewModel
-
-class AuthViewModelFactory(private val authManager: GoogleAuthManager) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        AuthViewModel(authManager) as T
-}
 
 class GameViewModelFactory(private val repository: ProgressRepository) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")

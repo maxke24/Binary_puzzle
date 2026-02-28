@@ -3,7 +3,6 @@ package com.binarypuzzle.app.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,24 +11,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.binarypuzzle.app.game.BinaryPuzzle
-import com.binarypuzzle.app.viewmodel.AuthViewModel
 import com.binarypuzzle.app.viewmodel.ProgressViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    authViewModel: AuthViewModel,
     progressViewModel: ProgressViewModel,
     onStartGame: (BinaryPuzzle.Difficulty) -> Unit,
-    onViewProgress: () -> Unit,
-    onSignOut: () -> Unit
+    onViewProgress: () -> Unit
 ) {
-    val user by authViewModel.user.collectAsState()
     val stats by progressViewModel.stats.collectAsState()
     val bestTimes by progressViewModel.bestTimes.collectAsState()
 
-    LaunchedEffect(user?.uid) {
-        user?.uid?.let { progressViewModel.loadProgress(it) }
+    LaunchedEffect(Unit) {
+        progressViewModel.loadProgress()
     }
 
     Scaffold(
@@ -39,12 +34,6 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = onViewProgress) {
                         Icon(Icons.Default.BarChart, contentDescription = "View Progress")
-                    }
-                    IconButton(onClick = {
-                        authViewModel.signOut()
-                        onSignOut()
-                    }) {
-                        Icon(Icons.Default.Logout, contentDescription = "Sign Out")
                     }
                 }
             )
@@ -58,29 +47,21 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // User welcome card
+            // Session stats card
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Welcome back,",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = user?.displayName ?: "Puzzler",
-                        fontSize = 22.sp,
+                        text = "Session Progress",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
-                        text = "Puzzles Completed",
+                        text = "Progress resets when you close the app",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

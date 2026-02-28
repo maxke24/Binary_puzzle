@@ -1,58 +1,29 @@
 package com.binarypuzzle.app.data.repository
 
 import com.binarypuzzle.app.data.model.UserProgress
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.tasks.await
+import java.util.UUID
 
+/**
+ * In-memory progress repository for testing (no Firebase required).
+ * Data is held for the app session and cleared on restart.
+ */
 class ProgressRepository {
 
-    private val db = FirebaseFirestore.getInstance()
-    private val progressCollection = db.collection("progress")
+    private val records = mutableListOf<UserProgress>()
 
-    suspend fun saveProgress(progress: UserProgress) {
-        val docRef = if (progress.id.isEmpty()) {
-            progressCollection.document()
-        } else {
-            progressCollection.document(progress.id)
-        }
-        val toSave = progress.copy(id = docRef.id)
-        docRef.set(toSave).await()
+    fun saveProgress(progress: UserProgress) {
+        records.add(progress.copy(id = UUID.randomUUID().toString()))
     }
 
-    suspend fun getUserProgress(userId: String): List<UserProgress> {
-        val snapshot = progressCollection
-            .whereEqualTo("userId", userId)
-            .get()
-            .await()
+    fun getUserProgress(): List<UserProgress> =
+        records.sortedByDescending { it.completedAtMillis }
 
-        return snapshot.documents
-            .mapNotNull { doc -> doc.toObject(UserProgress::class.java)?.copy(id = doc.id) }
-            .sortedByDescending { it.completedAtMillis }
-    }
+    fun getUserStats(): Map<String, Int> = records
+        .filter { it.completed }
+        .groupBy { it.difficulty }
+        .mapValues { (_, v) -> v.size }
 
-    suspend fun getUserStats(userId: String): Map<String, Int> {
-        val snapshot = progressCollection
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("completed", true)
-            .get()
-            .await()
-
-        return snapshot.documents
-            .mapNotNull { doc -> doc.toObject(UserProgress::class.java) }
-            .groupBy { it.difficulty }
-            .mapValues { (_, entries) -> entries.size }
-    }
-
-    suspend fun getBestTime(userId: String, difficulty: String): Long? {
-        val snapshot = progressCollection
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("difficulty", difficulty)
-            .whereEqualTo("completed", true)
-            .get()
-            .await()
-
-        return snapshot.documents
-            .mapNotNull { doc -> doc.toObject(UserProgress::class.java) }
-            .minOfOrNull { it.timeSeconds }
-    }
+    fun getBestTime(difficulty: String): Long? = records
+        .filter { it.completed && it.difficulty == difficulty }
+        .minOfOrNull { it.timeSeconds }
 }

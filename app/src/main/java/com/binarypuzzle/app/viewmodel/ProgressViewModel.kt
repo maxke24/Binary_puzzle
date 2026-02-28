@@ -23,32 +23,15 @@ class ProgressViewModel(private val repository: ProgressRepository) : ViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    fun loadProgress(userId: String) {
+    fun loadProgress() {
         viewModelScope.launch {
             _isLoading.value = true
-            _error.value = null
-            try {
-                _progressList.value = repository.getUserProgress(userId)
-                _stats.value = repository.getUserStats(userId)
-                _bestTimes.value = buildBestTimes(userId)
-            } catch (e: Exception) {
-                _error.value = "Failed to load progress: ${e.message}"
-            } finally {
-                _isLoading.value = false
-            }
+            _progressList.value = repository.getUserProgress()
+            _stats.value = repository.getUserStats()
+            _bestTimes.value = listOf("EASY", "MEDIUM", "HARD").mapNotNull { diff ->
+                repository.getBestTime(diff)?.let { diff to it }
+            }.toMap()
+            _isLoading.value = false
         }
-    }
-
-    private suspend fun buildBestTimes(userId: String): Map<String, Long> {
-        val difficulties = listOf("EASY", "MEDIUM", "HARD")
-        val result = mutableMapOf<String, Long>()
-        for (diff in difficulties) {
-            val best = repository.getBestTime(userId, diff)
-            if (best != null) result[diff] = best
-        }
-        return result
     }
 }

@@ -33,9 +33,6 @@ class GameViewModel(private val repository: ProgressRepository) : ViewModel() {
     private val _elapsedSeconds = MutableStateFlow(0L)
     val elapsedSeconds: StateFlow<Long> = _elapsedSeconds.asStateFlow()
 
-    private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
-
     private var timerJob: Job? = null
 
     fun startNewPuzzle(difficulty: BinaryPuzzle.Difficulty) {
@@ -69,28 +66,20 @@ class GameViewModel(private val repository: ProgressRepository) : ViewModel() {
         }
     }
 
-    fun saveCompletedPuzzle(userId: String, userDisplayName: String) {
+    fun saveCompletedPuzzle() {
         val puzzle = _puzzle.value ?: return
         if (!_isSolved.value) return
 
         viewModelScope.launch {
-            _isSaving.value = true
-            try {
-                val progress = UserProgress(
-                    userId = userId,
-                    userDisplayName = userDisplayName,
+            repository.saveProgress(
+                UserProgress(
                     puzzleId = puzzle.id,
                     difficulty = puzzle.difficulty.name,
                     completed = true,
                     timeSeconds = _elapsedSeconds.value,
                     completedAtMillis = System.currentTimeMillis()
                 )
-                repository.saveProgress(progress)
-            } catch (_: Exception) {
-                // Progress save errors are non-critical
-            } finally {
-                _isSaving.value = false
-            }
+            )
         }
     }
 

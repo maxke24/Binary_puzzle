@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.binarypuzzle.app.game.BinaryPuzzle
-import com.binarypuzzle.app.viewmodel.AuthViewModel
 import com.binarypuzzle.app.viewmodel.GameViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,7 +23,6 @@ import com.binarypuzzle.app.viewmodel.GameViewModel
 fun GameScreen(
     difficulty: BinaryPuzzle.Difficulty,
     gameViewModel: GameViewModel,
-    authViewModel: AuthViewModel,
     onBack: () -> Unit
 ) {
     val puzzle by gameViewModel.puzzle.collectAsState()
@@ -32,20 +30,13 @@ fun GameScreen(
     val invalidCells by gameViewModel.invalidCells.collectAsState()
     val isSolved by gameViewModel.isSolved.collectAsState()
     val elapsedSeconds by gameViewModel.elapsedSeconds.collectAsState()
-    val user by authViewModel.user.collectAsState()
 
-    // Start a fresh puzzle when first entering this screen
     LaunchedEffect(difficulty) {
         gameViewModel.startNewPuzzle(difficulty)
     }
 
-    // Auto-save on solve
     LaunchedEffect(isSolved) {
-        if (isSolved) {
-            val uid = user?.uid ?: return@LaunchedEffect
-            val name = user?.displayName ?: ""
-            gameViewModel.saveCompletedPuzzle(uid, name)
-        }
+        if (isSolved) gameViewModel.saveCompletedPuzzle()
     }
 
     Scaffold(
@@ -160,10 +151,7 @@ fun PuzzleGrid(
                         modifier = Modifier
                             .size(cellSize)
                             .padding(2.dp)
-                            .background(
-                                color = bgColor,
-                                shape = MaterialTheme.shapes.small
-                            )
+                            .background(color = bgColor, shape = MaterialTheme.shapes.small)
                             .then(
                                 if (!given) Modifier.clickable { onCellClick(r, c) }
                                 else Modifier
@@ -235,12 +223,7 @@ private fun RulesHint() {
             .padding(horizontal = 16.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = "Rules",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text("Rules", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Text("\u2022 Equal 0s and 1s in each row & column", fontSize = 12.sp)
             Text("\u2022 No 3 consecutive identical digits", fontSize = 12.sp)
