@@ -27,16 +27,14 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      # Install Gradle 8.6 — also handles caching of downloaded dependencies
-      - name: Set up Gradle 8.6
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.6'
+          cache: 'gradle'
 
       # Tell the Android Gradle Plugin where the SDK is
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       # Fail fast with a clear message if the secret is not configured
       - name: Write google-services.json
@@ -44,18 +42,18 @@ jobs:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           if [ -z "$GOOGLE_SERVICES_JSON" ]; then
-            echo "❌ GOOGLE_SERVICES_JSON secret is not set."
-            echo "   Go to: Settings → Secrets and variables → Actions → New repository secret"
+            echo "GOOGLE_SERVICES_JSON secret is not set."
+            echo "   Go to: Settings -> Secrets and variables -> Actions -> New repository secret"
             echo "   Name:  GOOGLE_SERVICES_JSON"
             echo "   Value: paste the full contents of your google-services.json"
             exit 1
           fi
           echo "$GOOGLE_SERVICES_JSON" > app/google-services.json
-          echo "✅ google-services.json written"
+          echo "google-services.json written successfully"
 
-      # Use 'gradle' directly — no wrapper jar needed
+      # The wrapper downloads Gradle 8.6 automatically from services.gradle.org
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
