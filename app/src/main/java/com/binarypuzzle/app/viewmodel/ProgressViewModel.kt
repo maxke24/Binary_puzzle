@@ -23,6 +23,9 @@ class ProgressViewModel(private val repository: ProgressRepository) : ViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // Always null in local mode — kept so ProgressScreen compiles unchanged
+    val error: StateFlow<String?> = MutableStateFlow<String?>(null).asStateFlow()
+
     fun loadProgress() {
         viewModelScope.launch {
             _isLoading.value = true
