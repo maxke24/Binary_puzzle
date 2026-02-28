@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Puzzle</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #6c8fff;
+    --accent2: #ff6c8f;
+    --text: #e8eaf6;
+    --text2: #9198b5;
+    --zero: #6c8fff;
+    --one: #ff6c8f;
+    --given: #0f1117;
+    --cell: #1a1d27;
+    --cell-given: #0d0f1a;
+    --invalid: rgba(255, 80, 80, 0.18);
+    --win-bg: rgba(15, 17, 23, 0.92);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; }
+  h1 span { color: var(--accent); }
+
+  #timer {
+    font-size: 1.2rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  /* Difficulty tabs */
+  #difficulty-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .diff-btn {
+    flex: 1;
+    padding: 10px 0;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .diff-btn:hover { border-color: var(--accent); color: var(--text); }
+  .diff-btn.active {
+    border-color: var(--accent);
+    background: rgba(108, 143, 255, 0.12);
+    color: var(--accent);
+  }
+
+  /* Grid */
+  #board-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  #board {
+    display: grid;
+    gap: 3px;
+    border: 3px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    background: var(--surface2);
+  }
+
+  .cell {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: var(--cell);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.1s, transform 0.08s, border-color 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cell:active { transform: scale(0.91); }
+  .cell.given {
+    background: var(--cell-given);
+    cursor: default;
+    border-color: rgba(108, 143, 255, 0.15);
+  }
+  .cell.zero { color: var(--zero); }
+  .cell.one  { color: var(--one); }
+  .cell.invalid { background: var(--invalid) !important; border-color: rgba(255, 80, 80, 0.4) !important; }
+
+  /* Block borders every size/2 cells */
+  .cell.block-right  { border-right-color: rgba(255,255,255,0.25); border-right-width: 3px; }
+  .cell.block-bottom { border-bottom-color: rgba(255,255,255,0.25); border-bottom-width: 3px; }
+
+  /* Toolbar */
+  #toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #0f1117; }
+  .btn.primary:hover { opacity: 0.85; color: #0f1117; }
+
+  /* Rules hint */
+  #rules {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 0.82rem;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+  #rules h3 { color: var(--text); font-size: 0.9rem; margin-bottom: 8px; }
+  #rules ul { padding-left: 18px; }
+  #rules li { margin-bottom: 4px; }
+
+  /* Stats bar */
+  #stats-bar {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-card .num { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+  .stat-card .lbl { font-size: 0.72rem; color: var(--text2); margin-top: 2px; }
+  .stat-card .best { font-size: 0.72rem; color: var(--accent2); margin-top: 2px; }
+
+  /* Win overlay */
+  #win-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--win-bg);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    backdrop-filter: blur(6px);
+  }
+  #win-overlay.show { display: flex; }
+  #win-overlay h2 { font-size: 2.2rem; }
+  #win-overlay p  { color: var(--text2); font-size: 1.1rem; }
+  #win-time { color: var(--accent); font-size: 1.8rem; font-weight: 800; }
+
+  /* responsive: smaller cells on small screens */
+  @media (max-width: 420px) {
+    .cell { width: 40px; height: 40px; font-size: 1.15rem; }
+    #board { gap: 2px; padding: 4px; }
+  }
+  @media (max-width: 340px) {
+    .cell { width: 33px; height: 33px; font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Binary <span>Puzzle</span></h1>
+  <div id="timer">0:00</div>
+</header>
+
+<div id="stats-bar">
+  <div class="stat-card">
+    <div class="num" id="stat-easy">0</div>
+    <div class="lbl">Easy</div>
+    <div class="best" id="best-easy"></div>
+  </div>
+  <div class="stat-card">
+    <div class="num" id="stat-medium">0</div>
+    <div class="lbl">Medium</div>
+    <div class="best" id="best-medium"></div>
+  </div>
+  <div class="stat-card">
+    <div class="num" id="stat-hard">0</div>
+    <div class="lbl">Hard</div>
+    <div class="best" id="best-hard"></div>
+  </div>
+</div>
+
+<div id="difficulty-bar">
+  <button class="diff-btn active" data-diff="easy">Easy 6×6</button>
+  <button class="diff-btn" data-diff="medium">Medium 8×8</button>
+  <button class="diff-btn" data-diff="hard">Hard 10×10</button>
+</div>
+
+<div id="board-wrap">
+  <div id="board"></div>
+</div>
+
+<div id="toolbar">
+  <button class="btn primary" id="btn-new">New Puzzle</button>
+  <button class="btn" id="btn-hint">Hint</button>
+  <button class="btn" id="btn-check">Check</button>
+</div>
+
+<div id="rules">
+  <h3>How to play</h3>
+  <ul>
+    <li>Fill the grid with <b style="color:var(--zero)">0</b>s and <b style="color:var(--one)">1</b>s.</li>
+    <li>Each row and column must have equal numbers of 0s and 1s.</li>
+    <li>No more than <b>2 identical</b> digits in a row or column.</li>
+    <li>All rows must be <b>unique</b>. All columns must be <b>unique</b>.</li>
+    <li>Tap a cell to cycle: empty → <b style="color:var(--zero)">0</b> → <b style="color:var(--one)">1</b> → empty.</li>
+  </ul>
+</div>
+
+<div id="win-overlay">
+  <div style="font-size:3rem">🎉</div>
+  <h2>Puzzle solved!</h2>
+  <div id="win-time">0:00</div>
+  <p id="win-msg"></p>
+  <button class="btn primary" id="btn-next" style="width:180px;margin-top:8px">Next Puzzle</button>
+</div>
+
+<script>
+// ─── Config ────────────────────────────────────────────────────────────────
+const DIFF = {
+  easy:   { size: 6,  remove: 0.50 },
+  medium: { size: 8,  remove: 0.54 },
+  hard:   { size: 10, remove: 0.58 },
+};
+
+// ─── State ──────────────────────────────────────────────────────────────────
+let state = {
+  diff: 'easy',
+  size: 6,
+  solution: [],   // 2-D array of 0/1
+  given: [],      // 2-D bool
+  grid: [],       // 2-D: 0, 1, or -1 (empty)
+  solved: false,
+  startMs: 0,
+  elapsedMs: 0,
+  timerHandle: null,
+};
+
+// localStorage key
+const LS = 'binpuzzle_v1';
+
+function loadStats() {
+  try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch { return {}; }
+}
+function saveStats(s) {
+  try { localStorage.setItem(LS, JSON.stringify(s)); } catch {}
+}
+
+// ─── Puzzle generator ────────────────────────────────────────────────────────
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function hasThreeConsec(arr) {
+  for (let i = 0; i < arr.length - 2; i++) {
+    if (arr[i] !== -1 && arr[i] === arr[i+1] && arr[i] === arr[i+2]) return true;
+  }
+  return false;
+}
+
+function getCol(grid, c) {
+  return grid.map(r => r[c]);
+}
+
+function isValidPlacement(grid, size, row, col) {
+  const half = size / 2;
+
+  // Row checks
+  const r = grid[row];
+  if (hasThreeConsec(r)) return false;
+  const rZeros = r.filter(v => v === 0).length;
+  const rOnes  = r.filter(v => v === 1).length;
+  if (rZeros > half || rOnes > half) return false;
+
+  // Col checks
+  const c = getCol(grid, col);
+  if (hasThreeConsec(c)) return false;
+  const cZeros = c.filter(v => v === 0).length;
+  const cOnes  = c.filter(v => v === 1).length;
+  if (cZeros > half || cOnes > half) return false;
+
+  // Row uniqueness (only when row complete)
+  if (r.every(v => v !== -1)) {
+    const rs = r.join('');
+    for (let ri = 0; ri < row; ri++) {
+      if (grid[ri].join('') === rs) return false;
+    }
+  }
+
+  // Col uniqueness (only when col complete)
+  if (c.every(v => v !== -1)) {
+    const cs = c.join('');
+    for (let ci = 0; ci < col; ci++) {
+      if (getCol(grid, ci).join('') === cs) return false;
+    }
+  }
+
+  return true;
+}
+
+function solveFill(grid, size, pos) {
+  if (pos === size * size) return true;
+  const row = Math.floor(pos / size);
+  const col = pos % size;
+  const vals = shuffle([0, 1]);
+  for (const v of vals) {
+    grid[row][col] = v;
+    if (isValidPlacement(grid, size, row, col)) {
+      if (solveFill(grid, size, pos + 1)) return true;
+    }
+    grid[row][col] = -1;
+  }
+  return false;
+}
+
+function generatePuzzle(diff) {
+  const { size, remove } = DIFF[diff];
+  const solution = Array.from({ length: size }, () => new Array(size).fill(-1));
+  solveFill(solution, size, 0);
+
+  // Deep copy solution and remove cells
+  const puzzle = solution.map(r => [...r]);
+  const cells = shuffle([...Array(size * size).keys()]);
+  const toRemove = Math.floor(size * size * remove);
+  for (let i = 0; i < toRemove; i++) {
+    const row = Math.floor(cells[i] / size);
+    const col = cells[i] % size;
+    puzzle[row][col] = -1;
+  }
+
+  const given = puzzle.map(r => r.map(v => v !== -1));
+  return { solution, puzzle, given, size };
+}
+
+// ─── Validation ──────────────────────────────────────────────────────────────
+function getInvalidCells(grid, size) {
+  const bad = new Set();
+  const half = size / 2;
+
+  for (let r = 0; r < size; r++) {
+    // Three consecutive in row
+    for (let c = 0; c < size - 2; c++) {
+      const v = grid[r][c];
+      if (v !== -1 && v === grid[r][c+1] && v === grid[r][c+2]) {
+        bad.add(`${r},${c}`); bad.add(`${r},${c+1}`); bad.add(`${r},${c+2}`);
+      }
+    }
+    // Row balance
+    const row = grid[r];
+    const filled = row.filter(v => v !== -1);
+    if (filled.filter(v => v === 0).length > half || filled.filter(v => v === 1).length > half) {
+      row.forEach((v, c) => { if (v !== -1) bad.add(`${r},${c}`); });
+    }
+  }
+
+  for (let c = 0; c < size; c++) {
+    const col = getCol(grid, c);
+    // Three consecutive in col
+    for (let r = 0; r < size - 2; r++) {
+      const v = col[r];
+      if (v !== -1 && v === col[r+1] && v === col[r+2]) {
+        bad.add(`${r},${c}`); bad.add(`${r+1},${c}`); bad.add(`${r+2},${c}`);
+      }
+    }
+    // Col balance
+    const filled = col.filter(v => v !== -1);
+    if (filled.filter(v => v === 0).length > half || filled.filter(v => v === 1).length > half) {
+      col.forEach((v, r) => { if (v !== -1) bad.add(`${r},${c}`); });
+    }
+  }
+
+  // Row uniqueness
+  for (let r = 0; r < size; r++) {
+    if (!grid[r].every(v => v !== -1)) continue;
+    const rs = grid[r].join('');
+    for (let r2 = 0; r2 < r; r2++) {
+      if (grid[r2].every(v => v !== -1) && grid[r2].join('') === rs) {
+        grid[r].forEach((_, c) => bad.add(`${r},${c}`));
+        grid[r2].forEach((_, c) => bad.add(`${r2},${c}`));
+      }
+    }
+  }
+
+  // Col uniqueness
+  for (let c = 0; c < size; c++) {
+    const col = getCol(grid, c);
+    if (!col.every(v => v !== -1)) continue;
+    const cs = col.join('');
+    for (let c2 = 0; c2 < c; c2++) {
+      const col2 = getCol(grid, c2);
+      if (col2.every(v => v !== -1) && col2.join('') === cs) {
+        col.forEach((_, r) => bad.add(`${r},${c}`));
+        col2.forEach((_, r) => bad.add(`${r},${c2}`));
+      }
+    }
+  }
+
+  return bad;
+}
+
+function isSolved(grid, solution, size) {
+  for (let r = 0; r < size; r++)
+    for (let c = 0; c < size; c++)
+      if (grid[r][c] !== solution[r][c]) return false;
+  return true;
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function startTimer() {
+  stopTimer();
+  state.startMs = Date.now() - state.elapsedMs;
+  state.timerHandle = setInterval(() => {
+    state.elapsedMs = Date.now() - state.startMs;
+    document.getElementById('timer').textContent = formatTime(state.elapsedMs);
+  }, 500);
+}
+
+function stopTimer() {
+  if (state.timerHandle) { clearInterval(state.timerHandle); state.timerHandle = null; }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderBoard() {
+  const board = document.getElementById('board');
+  const { size, grid, given } = state;
+  const half = size / 2;
+  board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+  board.innerHTML = '';
+
+  const invalid = state.solved ? new Set() : getInvalidCells(grid, size);
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const v = grid[r][c];
+
+      if (given[r][c]) cell.classList.add('given');
+      if (v === 0) { cell.classList.add('zero'); cell.textContent = '0'; }
+      else if (v === 1) { cell.classList.add('one');  cell.textContent = '1'; }
+
+      if (invalid.has(`${r},${c}`)) cell.classList.add('invalid');
+
+      // Block separators at half-way
+      if (c === half - 1) cell.classList.add('block-right');
+      if (r === half - 1) cell.classList.add('block-bottom');
+
+      if (!given[r][c] && !state.solved) {
+        cell.addEventListener('click', () => onCellClick(r, c));
+      }
+      board.appendChild(cell);
+    }
+  }
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function onCellClick(r, c) {
+  const v = state.grid[r][c];
+  state.grid[r][c] = v === -1 ? 0 : v === 0 ? 1 : -1;
+  renderBoard();
+  checkWin();
+}
+
+function checkWin() {
+  if (!isSolved(state.grid, state.solution, state.size)) return;
+  stopTimer();
+  state.solved = true;
+  renderBoard();
+
+  const elapsed = state.elapsedMs;
+  const diff = state.diff;
+  const stats = loadStats();
+  if (!stats[diff]) stats[diff] = { wins: 0 };
+  stats[diff].wins = (stats[diff].wins || 0) + 1;
+  if (!stats[diff].best || elapsed < stats[diff].best) stats[diff].best = elapsed;
+  saveStats(stats);
+  updateStatsBar();
+
+  const isRecord = stats[diff].wins === 1 || elapsed === stats[diff].best;
+  document.getElementById('win-time').textContent = formatTime(elapsed);
+  document.getElementById('win-msg').textContent = isRecord
+    ? `New best time for ${diff}! 🏆`
+    : `Best: ${formatTime(stats[diff].best)}`;
+  document.getElementById('win-overlay').classList.add('show');
+}
+
+function newPuzzle() {
+  stopTimer();
+  document.getElementById('win-overlay').classList.remove('show');
+  const { solution, puzzle, given, size } = generatePuzzle(state.diff);
+  state.size = size;
+  state.solution = solution;
+  state.given = given;
+  state.grid = puzzle.map(r => [...r]);
+  state.solved = false;
+  state.elapsedMs = 0;
+  document.getElementById('timer').textContent = '0:00';
+  renderBoard();
+  startTimer();
+}
+
+function giveHint() {
+  if (state.solved) return;
+  // Find a random empty or wrong cell and fill it correctly
+  const empties = [];
+  for (let r = 0; r < state.size; r++)
+    for (let c = 0; c < state.size; c++)
+      if (!state.given[r][c] && state.grid[r][c] !== state.solution[r][c])
+        empties.push([r, c]);
+  if (!empties.length) return;
+  const [r, c] = empties[Math.floor(Math.random() * empties.length)];
+  state.grid[r][c] = state.solution[r][c];
+  state.given[r][c] = true; // treat as given so it's locked
+  renderBoard();
+  checkWin();
+}
+
+function checkErrors() {
+  // Flash invalid cells — they're always highlighted, so just do a visual pulse
+  const cells = document.querySelectorAll('.cell.invalid');
+  cells.forEach(el => {
+    el.style.transition = 'transform 0.1s';
+    el.style.transform = 'scale(0.88)';
+    setTimeout(() => { el.style.transform = ''; }, 200);
+  });
+  if (!cells.length) {
+    // No errors — brief green flash on all filled cells
+    document.querySelectorAll('.cell:not(.invalid)').forEach(el => {
+      el.style.outline = '2px solid #4cff8f';
+      setTimeout(() => { el.style.outline = ''; }, 400);
+    });
+  }
+}
+
+function updateStatsBar() {
+  const stats = loadStats();
+  ['easy', 'medium', 'hard'].forEach(d => {
+    const s = stats[d] || {};
+    document.getElementById(`stat-${d}`).textContent = s.wins || 0;
+    document.getElementById(`best-${d}`).textContent =
+      s.best ? `Best: ${formatTime(s.best)}` : '';
+  });
+}
+
+// ─── Event wiring ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.diff = btn.dataset.diff;
+    newPuzzle();
+  });
+});
+
+document.getElementById('btn-new').addEventListener('click', newPuzzle);
+document.getElementById('btn-hint').addEventListener('click', giveHint);
+document.getElementById('btn-check').addEventListener('click', checkErrors);
+document.getElementById('btn-next').addEventListener('click', newPuzzle);
+
+// ─── Boot ──────────────────────────────────────────────────────────────────────
+updateStatsBar();
+newPuzzle();
+</script>
+</body>
+</html>
