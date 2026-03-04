@@ -4,37 +4,26 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Grid cells representing binary puzzle -->
-    <!-- Row 1: 0 1 0 -->
-    <rect android:fillColor="#FFFFFF" android:fillAlpha="0.9"
-        android:x="22" android:y="30" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFD700" android:fillAlpha="0.9"
-        android:x="45" android:y="30" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFFFFF" android:fillAlpha="0.9"
-        android:x="68" android:y="30" android:width="18" android:height="18" android:rx="3"/>
-    <!-- Row 2: 1 0 1 -->
-    <rect android:fillColor="#FFD700" android:fillAlpha="0.9"
-        android:x="22" android:y="53" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFFFFF" android:fillAlpha="0.9"
-        android:x="45" android:y="53" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFD700" android:fillAlpha="0.9"
-        android:x="68" android:y="53" android:width="18" android:height="18" android:rx="3"/>
-    <!-- Row 3: 0 1 0 -->
-    <rect android:fillColor="#FFFFFF" android:fillAlpha="0.9"
-        android:x="22" android:y="76" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFD700" android:fillAlpha="0.9"
-        android:x="45" android:y="76" android:width="18" android:height="18" android:rx="3"/>
-    <rect android:fillColor="#FFFFFF" android:fillAlpha="0.9"
-        android:x="68" android:y="76" android:width="18" android:height="18" android:rx="3"/>
-    <!-- 0 label -->
-    <text
-        android:x="27" android:y="44"
-        android:fillColor="#6650A4"
-        android:fontFamily="sans-serif-medium"
-        android:textSize="12">0</text>
-    <text
-        android:x="50" android:y="44"
-        android:fillColor="#6650A4"
-        android:fontFamily="sans-serif-medium"
-        android:textSize="12">1</text>
+    <!-- 3x3 grid representing binary puzzle pattern -->
+    <!-- Row 1: 0, 1, 0 -->
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M22,30h18v18H22z" />
+    <path android:fillColor="#FFD700" android:fillAlpha="0.9"
+        android:pathData="M45,30h18v18H45z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M68,30h18v18H68z" />
+    <!-- Row 2: 1, 0, 1 -->
+    <path android:fillColor="#FFD700" android:fillAlpha="0.9"
+        android:pathData="M22,53h18v18H22z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M45,53h18v18H45z" />
+    <path android:fillColor="#FFD700" android:fillAlpha="0.9"
+        android:pathData="M68,53h18v18H68z" />
+    <!-- Row 3: 0, 1, 0 -->
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M22,76h18v18H22z" />
+    <path android:fillColor="#FFD700" android:fillAlpha="0.9"
+        android:pathData="M45,76h18v18H45z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9"
+        android:pathData="M68,76h18v18H68z" />
 </vector>
